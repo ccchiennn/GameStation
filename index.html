@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>精緻數獨遊戲 (難度可調與高亮數字)</title>
+    <title>數獨遊戲</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -44,13 +44,15 @@
             width: 90%;
             max-width: 450px;
             margin: 0 auto 20px auto;
-            border: 4px solid #333;
+            /* 數獨板外框線條也稍微加粗，讓整體更穩固 */
+            border: 5px solid #333; 
             aspect-ratio: 1 / 1;
             background-color: #eee;
         }
 
         .cell {
-            border: 1px solid #ccc;
+            /* 內部單元格線條保持細線，用於區分各個單元格 */
+            border: 1px solid #ccc; 
             font-size: 1.5em;
             font-weight: bold;
             display: flex;
@@ -61,40 +63,50 @@
             user-select: none;
         }
 
-        /* 突出顯示 3x3 九宮格的邊界 */
+        /* ------------------------------------------------ */
+        /* --------- 核心變動：九宮格邊界加粗至 3px --------- */
+        /* ------------------------------------------------ */
+
+        /* 突出顯示 3x3 九宮格的垂直邊界 (第 3 和第 6 列的線) */
         .cell:nth-child(3n) {
-            border-right-width: 3px;
+            border-right-width: 3px; /* 從 3px 加粗到 3px (保持 3px 粗度，但確保在強規則下不變細) */
             border-right-color: #333;
         }
+        /* 突出顯示 3x3 九宮格的水平邊界 (第 3 和第 6 行的線) */
         .cell:nth-child(27n) {
-            border-bottom-width: 3px;
+            border-bottom-width: 3px; /* 從 3px 加粗到 3px (保持 3px 粗度，但確保在強規則下不變細) */
             border-bottom-color: #333;
         }
-        /* 每一行的第三個和第六個單元格 */
+        
+        /* 修正：當行尾是 3n 時，它應該是外框線 (4px)，而不是 3px 內邊界，但這裡讓它保持細線 */
         .cell:nth-child(9n+1):nth-child(3n) {
-            border-right-width: 1px;
+            border-right-width: 1px; 
             border-right-color: #ccc;
         }
-        /* 每一行末尾的邊界 */
+        
+        /* 數獨板右側外框線 (比內部九宮格線更粗一點，現在是 5px) */
         .cell:nth-child(9n) {
-            border-right-width: 4px;
+            border-right-width: 5px; 
             border-right-color: #333;
         }
-        /* 數獨板最後一行的邊界 */
+        /* 數獨板底部外框線 (比內部九宮格線更粗一點，現在是 5px) */
         .cell:nth-last-child(-n+9) {
-            border-bottom-width: 4px;
+            border-bottom-width: 5px; 
             border-bottom-color: #333;
         }
-        /* 數獨板左側邊界 */
+        /* 數獨板左側外框線 (現在是 5px) */
         .cell:nth-child(9n+1) {
-            border-left-width: 4px;
+            border-left-width: 5px; 
             border-left-color: #333;
         }
-        /* 數獨板頂部邊界 */
+        /* 數獨板頂部外框線 (現在是 5px) */
         .cell:nth-child(-n+9) {
-            border-top-width: 4px;
+            border-top-width: 5px; 
             border-top-color: #333;
         }
+
+        /* ------------------------------------------------ */
+        /* ------------------------------------------------ */
 
 
         /* 單元格狀態 */
@@ -110,7 +122,7 @@
             box-shadow: inset 0 0 0 2px #fbc531;
         }
         
-        /* 新增：相同數字高亮 */
+        /* 相同數字高亮 */
         .same-number-highlight {
             background-color: #e6e6fa; /* 淺紫色 */
             color: #4a90e2; 
@@ -360,7 +372,6 @@
                 solutionsCount++;
             }
 
-            // --- 新增：難度調整邏輯 ---
             function getCellsToRemove(difficulty) {
                 return DIFFICULTY_LEVELS[difficulty] || DIFFICULTY_LEVELS.medium;
             }
@@ -415,7 +426,8 @@
                     cell.classList.add('cell');
                     cell.dataset.row = r;
                     cell.dataset.col = c;
-                    cell.dataset.value = value; // 儲存值以便高亮
+                    cell.dataset.value = value;
+                    cell.dataset.index = index; // 方便用索引來計算
 
                     if (value !== 0) {
                         cell.textContent = value;
@@ -441,7 +453,6 @@
                 }
             }
             
-            // 新增：高亮所有具有相同數字的單元格
             function highlightSameNumbers(value) {
                 document.querySelectorAll('.cell').forEach(cell => {
                     cell.classList.remove('same-number-highlight');
@@ -449,7 +460,6 @@
 
                 if (value !== 0 && value !== '') {
                     document.querySelectorAll(`.cell[data-value="${value}"]`).forEach(cell => {
-                        // 確保只有非選中單元格才使用 general highlight
                         if (!cell.classList.contains('selected')) { 
                             cell.classList.add('same-number-highlight');
                         }
@@ -457,8 +467,6 @@
                 }
             }
 
-
-            // 處理單元格點擊 (加入高亮相同數字的邏輯)
             function handleCellClick(event) {
                 const newSelected = event.target;
 
@@ -499,7 +507,6 @@
                 messageArea.className = 'message-area';
             }
 
-            // 處理數字按鈕點擊
             function handleControlClick(event) {
                 if (!selectedCell || selectedCell.classList.contains('given')) return;
 
@@ -527,12 +534,10 @@
             }
             
             function checkCellForErrors() {
-                // 1. 清除所有錯誤狀態
                 document.querySelectorAll('.cell').forEach(cell => {
                     cell.classList.remove('error');
                 });
                 
-                // 2. 重新檢查所有輸入的數字
                 for (let row = 0; row < 9; row++) {
                     for (let col = 0; col < 9; col++) {
                         const tempValue = currentSudoku[row][col];
@@ -568,14 +573,12 @@
 
             // --- III. 功能按鈕邏輯 ---
 
-            // 處理「重新開始」按鈕，現在會根據難度選擇器生成遊戲
             newGameBtn.addEventListener('click', () => {
                 const selectedDifficulty = difficultySelector.value;
                 initGame(selectedDifficulty);
                 showMessage(`已生成 ${selectedDifficulty} 難度的數獨謎題！`, 'success');
             });
 
-            // 處理「清除」
             clearBtn.addEventListener('click', () => {
                 if (!selectedCell || selectedCell.classList.contains('given')) return;
                 
@@ -587,7 +590,7 @@
                 selectedCell.dataset.value = 0; // 清除 dataset.value
                 currentSudoku[r][c] = 0;
                 
-                // 清除相同數字高亮 (因為數字被移除了)
+                // 清除相同數字高亮
                 document.querySelectorAll('.cell').forEach(cell => {
                     cell.classList.remove('same-number-highlight');
                 });
@@ -596,7 +599,6 @@
                 showMessage('單元格內容已清除。', 'error');
             });
 
-            // 處理「檢查答案」
             checkBtn.addEventListener('click', () => {
                 let hasError = false;
                 let isComplete = true;
@@ -629,7 +631,6 @@
                 }
             });
 
-            // 新增：難度選擇器事件，選擇後立刻生成新遊戲
             difficultySelector.addEventListener('change', (event) => {
                  initGame(event.target.value);
                  showMessage(`難度已切換為 ${event.target.options[event.target.selectedIndex].text}，新遊戲已生成！`, 'success');
@@ -638,7 +639,6 @@
 
             // --- IV. 遊戲初始化 ---
 
-            // 現在接受難度作為參數
             function initGame(difficulty = 'medium') {
                 document.querySelectorAll('.cell').forEach(cell => {
                     cell.classList.remove('selected', 'highlighted', 'same-number-highlight', 'error');
@@ -653,7 +653,6 @@
                 messageArea.className = 'message-area';
             }
 
-            // 啟動遊戲 (使用中等難度作為預設)
             initGame('medium');
         });
     </script>

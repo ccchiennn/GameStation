@@ -1,1 +1,280 @@
-# little game
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>終極數獨遊戲</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    body {
+        background: #1e1e1e;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+    }
+
+    h1 { margin-bottom: 10px; }
+
+    #controls {
+        margin-bottom: 15px;
+    }
+
+    button, select {
+        padding: 10px 15px;
+        font-size: 16px;
+        margin: 5px;
+        cursor: pointer;
+    }
+
+    #sudoku {
+        margin: 20px auto;
+        width: 90vw;
+        max-width: 500px;
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        border: 4px solid #fff;
+    }
+
+    input {
+        width: 100%;
+        aspect-ratio: 1;
+        text-align: center;
+        font-size: 24px;
+        border: 1px solid #555;
+        background: #333;
+        color: #fff;
+    }
+
+    .fixed {
+        background: #444;
+        font-weight: bold;
+    }
+
+    .error {
+        background: #a00 !important;
+    }
+
+    /* 粗方塊框 */
+    input:nth-child(3n+1) { border-left: 3px solid #fff; }
+    input:nth-child(-n+9) { border-top: 3px solid #fff; }
+
+    #message { margin-top: 10px; font-size: 20px; min-height: 25px; }
+</style>
+</head>
+<body>
+
+<h1>終極數獨遊戲</h1>
+
+<div id="controls">
+    <select id="difficulty">
+        <option value="40">簡單</option>
+        <option value="50">中等</option>
+        <option value="60">困難</option>
+        <option value="70">地獄</option>
+    </select>
+    <button onclick="newGame()">新遊戲</button>
+    <button onclick="solveSudoku()">自動解題</button>
+    <button onclick="checkErrors()">檢查錯誤</button>
+</div>
+
+<div id="sudoku"></div>
+<div id="message"></div>
+
+<script>
+// -------------------- Sudoku 遊戲邏輯 --------------------
+const sudokuBoard = document.getElementById("sudoku");
+const message = document.getElementById("message");
+
+let board = [];
+
+// 建立空白盤
+function createEmptyBoard() {
+    board = Array.from({ length: 9 }, () => Array(9).fill(0));
+}
+
+// 檢查是否能放數字
+function isValid(board, row, col, num) {
+    for (let x = 0; x < 9; x++) {
+        if (board[row][x] === num) return false;
+        if (board[x][col] === num) return false;
+    }
+    const br = Math.floor(row / 3) * 3;
+    const bc = Math.floor(col / 3) * 3;
+    for (let r = br; r < br + 3; r++)
+        for (let c = bc; c < bc + 3; c++)
+            if (board[r][c] === num) return false;
+
+    return true;
+}
+
+// 產生完整數獨
+function fillBoard(board) {
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            if (board[row][col] === 0) {
+                let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+                for (let num of nums) {
+                    if (isValid(board, row, col, num)) {
+                        board[row][col] = num;
+                        if (fillBoard(board)) return true;
+                        board[row][col] = 0;
+                    }
+                }
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// 挖空產生題目
+function removeNumbers(board, amount) {
+    let removed = 0;
+    while (removed < amount) {
+        let r = Math.floor(Math.random() * 9);
+        let c = Math.floor(Math.random() * 9);
+        if (board[r][c] !== 0) {
+            board[r][c] = 0;
+            removed++;
+        }
+    }
+}
+
+// 建立 UI
+function drawBoard(board) {
+    sudokuBoard.innerHTML = "";
+
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            let cell = document.createElement("input");
+            cell.maxLength = 1;
+
+            if (board[r][c] !== 0) {
+                cell.value = board[r][c];
+                cell.classList.add("fixed");
+                cell.disabled = true;
+            }
+
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+
+            cell.addEventListener("input", handleInput);
+            sudokuBoard.appendChild(cell);
+        }
+    }
+}
+
+// 處理輸入
+function handleInput(e) {
+    let cell = e.target;
+    let value = cell.value;
+
+    if (!/^[1-9]$/.test(value)) {
+        cell.value = "";
+        return;
+    }
+
+    message.textContent = "";
+    checkErrors();
+}
+
+// 檢查錯誤
+function checkErrors() {
+    sudokuBoard.querySelectorAll("input").forEach(c => c.classList.remove("error"));
+
+    let ok = true;
+
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            let val = sudokuBoard.children[r * 9 + c].value;
+            if (!val) continue;
+
+            if (!inputIsValid(r, c, val)) {
+                sudokuBoard.children[r * 9 + c].classList.add("error");
+                ok = false;
+            }
+        }
+    }
+
+    if (ok) message.textContent = "👍 沒有錯誤";
+    else message.textContent = "❌ 有錯誤，請檢查紅色格子";
+
+    return ok;
+}
+
+function inputIsValid(row, col, value) {
+    for (let c = 0; c < 9; c++) {
+        if (c !== col && sudokuBoard.children[row * 9 + c].value == value) return false;
+    }
+    for (let r = 0; r < 9; r++) {
+        if (r !== row && sudokuBoard.children[r * 9 + col].value == value) return false;
+    }
+
+    let br = Math.floor(row / 3) * 3;
+    let bc = Math.floor(col / 3) * 3;
+    for (let r = br; r < br + 3; r++)
+        for (let c = bc; c < bc + 3; c++)
+            if (!(r === row && c === col) &&
+                sudokuBoard.children[r * 9 + c].value == value)
+                return false;
+
+    return true;
+}
+
+// 將 UI 讀回 board
+function readBoard() {
+    let b = Array.from({ length: 9 }, () => Array(9).fill(0));
+    for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++) {
+            let v = sudokuBoard.children[r * 9 + c].value;
+            b[r][c] = v ? Number(v) : 0;
+        }
+    return b;
+}
+
+// 自動解題
+function solveSudoku() {
+    let b = readBoard();
+
+    function solve() {
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (b[r][c] === 0) {
+                    for (let num = 1; num <= 9; num++) {
+                        if (isValid(b, r, c, num)) {
+                            b[r][c] = num;
+                            if (solve()) return true;
+                            b[r][c] = 0;
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    solve();
+
+    drawBoard(b);
+    message.textContent = "✔ 自動完成！";
+}
+
+// 新遊戲
+function newGame() {
+    message.textContent = "產生中...";
+    createEmptyBoard();
+
+    fillBoard(board);
+
+    let difficulty = Number(document.getElementById("difficulty").value);
+    removeNumbers(board, difficulty);
+
+    drawBoard(board);
+    message.textContent = "新遊戲開始！";
+}
+
+newGame();
+</script>
+</body>
+</html>
